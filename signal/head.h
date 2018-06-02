@@ -5,5 +5,6 @@
 #include<string.h>
 #include<sys/wait.h>
 #include<stdlib.h>
+#include<signal.h>
 #define MAXBUFFER 1000
 #define MAXFD 100
