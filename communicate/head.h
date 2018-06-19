@@ -10,7 +10,6 @@
 #include<netinet/in.h>
 #include<arpa/inet.h>
 #include<time.h>
-#include<sys/socket.h>
 #include<errno.h>
-
+#include<mysql/mysql.h>
 #define MAXBUFFER 1024

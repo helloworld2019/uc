@@ -1,8 +1,7 @@
 #include "head.h"
-#include "packet.h"
 
 
-ssize_t readn(int fd , void* buf , size_t count ){
+int readn(int fd , char* buf , int count ){
 	int nleft = count ;
 	char* bp = (char*)buf;
 	while(nleft>0){
@@ -24,7 +23,7 @@ ssize_t readn(int fd , void* buf , size_t count ){
 	return count ;
 }
 
-ssize_t writen(int fd , void* buf , size_t count ){
+int writen(int fd , char* buf , int count ){
 	int nleft = count ;
 	char* bp = (char*)buf;
 	while(nleft>0){
@@ -56,7 +55,7 @@ ssize_t recv_peek(int sockfd, void *buf, size_t len){
 
 
 ssize_t myreadline(int sockfd , void* buffer , ssize_t max){
-	char* buff = buffer;
+	char* buff = (char *)buffer;
 	int nread = recv_peek(sockfd,buff,max );
 	if(nread<0){
 		perror("recv_peek");

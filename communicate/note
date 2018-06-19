@@ -1,3 +1,0 @@
-select :
-depend on the process' max file descripter
-and volume of the FD_SET(1024)(have to change)
