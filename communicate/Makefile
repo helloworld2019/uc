@@ -1,5 +1,5 @@
 all: client.o server.o io.o database.o mystring.o client_fun.o server_fun.o packet.o  
-	 g++ io.o server.o mystring.o packet.o server_fun.o database.o -lmysqlclient  -o server -g
+	 g++ io.o server.o mystring.o packet.o server_fun.o database.o -lmysqlclient -lpthread -o server -g
 	 g++ client.o io.o mystring.o packet.o client_fun.o database.o  -lmysqlclient  -o client -g
 	 rm *.o
 server.o: server.cpp head.h packet.h

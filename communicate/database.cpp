@@ -194,8 +194,10 @@ void usr_DB::setfd(char* username , char* fd){
 
 }
 
-int usr_DB::getfd(char* username ){
+int usr_DB::getfd(char* username){
 	char query[100];
+	char fd[10];
+	bzero(fd,10);
 	bzero(query,100);
 	join(query,"select fd from usr ");
 	join(query," where user= '");
@@ -211,13 +213,22 @@ int usr_DB::getfd(char* username ){
 	}
 
 	res = mysql_use_result(conn);
-	int result ;
-	if((row=mysql_fetch_row(res))!=NULL){
-		result = row[0];
-	}
-	printf("fd is %d\n",result);
 	
+	if((row=mysql_fetch_row(res))!=NULL){
+		int ki = 0;
+		while(row[0][ki]!='\0'){
+			fd[ki] = row[0][ki];
+			ki++;
+		}
+		fd[ki]='\0';
+	}
+
+	printf("get_fd jj %s\n",fd);
+	int number = ctoi(fd);
+	printf("number is %d\n",number);
+	return number;
 	mysql_free_result(res);
+
 }
 
 

@@ -3,12 +3,13 @@
 #include "database.h"
 #include "io.h"
 #include "mystring.h"
-void transfer(int connect);
+extern usr_DB* db;
+extern pthread_mutex_t mutex;
+void* transfer(void* );
 bool testin(int connect);
 void start(int listenfd){
 	struct sockaddr_in peeraddr;
 	socklen_t peerlen = sizeof(peeraddr);
-
 	while(1){
 		int connect = accept(listenfd,(struct sockaddr*)&peeraddr,&peerlen);
 		if(connect < 0 ){
@@ -19,30 +20,29 @@ void start(int listenfd){
 				perror("connect");
 			}
 		}
-		else{
-			int pid = fork();
-			if(pid==0){
-				while(!testin(connect)){
-					int count = writen(connect,"wrong user or password",22);
-					if(count>0)break;
-					if(count<0){
-						if(errno==EINTR){
-							continue;
-						}
-						perror("writen");
-						exit(1);
-					}
-					if(count==0){
-						printf("pid:%d offline",getpid());
-						exit(0);
-					}
-					
+		while(!testin(connect)){
+			int count = writen(connect,"wrong user or password",22);
+			if(count>0)break;
+			if(count<0){
+				if(errno==EINTR){
+					continue;
 				}
-				writen(connect,"successful",10);
-				transfer(connect);
+				perror("writen");
+				exit(1);
 			}
+			if(count==0){
+				printf("pid:%d offline",getpid());
+				exit(0);
+			}
+	
 		}
-	}	
+		printf("hello?\n");	
+		writen(connect,"successful",10);
+		printf("hi\n");
+		pthread_t tid;
+		int t = connect;
+		pthread_create(&tid,NULL,transfer,(void*)&t);
+	}
 }
 
 bool testin(int connect){
@@ -79,23 +79,26 @@ bool testin(int connect){
 	printf("username %s\n",user);
 	printf("password %s\n",password);
 
-	usr_DB* db = new usr_DB;
 	char fd[100];
 	bzero(fd,100);
 	itoc(connect,fd);
-	
+	pthread_mutex_lock(&mutex);	
 	if(db->check(user,password)){
 		printf("user and password are correct!\n");
 		db->setfd(user,fd);
+		pthread_mutex_unlock(&mutex);
 		printf("finish the testin\n");
 		return true;
 	}
+	pthread_mutex_unlock(&mutex);
 	return false;
 }
 
-void transfer(int connect){
+void* transfer(void* con){
 	char buffer[1024];
 	char to[100];
+	printf("connect is %d",connect);
+	int connect = *((int*)con);
 	while(1){
 			bzero(to,100);
 			bzero(buffer,1024);
@@ -143,12 +146,15 @@ void transfer(int connect){
 			}
 			getpeername(buffer,to);
 			printf("peername is %s",to);
-			usr_DB* db = new usr_DB;
 			
-				
+			printf("buffer is %s\n",buffer);		
+			
+			pthread_mutex_lock(&mutex);	
 			int fd =  db->getfd(to);
+			pthread_mutex_unlock(&mutex);	
+			
 			printf("get fd , and fd is %d\n",fd);
-			writen(fd,buffer,number+4);
-
+			int c = writen(fd,buffer,number+4);
+			printf("in transfer , finish writen wrintein is %d\n",c);
 	}		
 }

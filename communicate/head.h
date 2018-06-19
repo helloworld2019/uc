@@ -12,4 +12,6 @@
 #include<time.h>
 #include<errno.h>
 #include<mysql/mysql.h>
+#include<pthread.h>
+
 #define MAXBUFFER 1024

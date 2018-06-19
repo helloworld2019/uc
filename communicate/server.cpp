@@ -2,19 +2,18 @@
 #include "packet.h"
 #include "io.h"
 #include "server_fun.h"
-void handle_child(int a){
-	int n ; 
-	while((n=waitpid(-1,NULL,0))>0){
-		printf("reap child %d\n",n);
-	}
-}
+#include "database.h"
 
+usr_DB* db;
+
+pthread_mutex_t mutex;
 int main(){
-	signal(SIGCHLD,handle_child);
+	db = new usr_DB;
+	mutex = PTHREAD_MUTEX_INITIALIZER;
 	int listenfd ;
 	struct sockaddr_in serveraddr;
 	listenfd = socket(AF_INET,SOCK_STREAM,0);
-
+	
 	bzero(&serveraddr,sizeof(serveraddr));
 	serveraddr.sin_family = AF_INET;
 	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -33,9 +32,7 @@ int main(){
 
 	listen(listenfd,100);
 	
-	for(;;){
-		start(listenfd);
-	}
+	start(listenfd);
 	
 }
 

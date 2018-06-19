@@ -16,39 +16,45 @@ void client_sendinformation(char* from , char* to , char* information,int fd){
 }
 
 void client_recvinformation(int fd){
-	printf("in client_recvinformation()\n");
-	char buffer[1024];
-	char username[100];
-	char peername[100];
-	char message[1024];
+		while(1){	
+			printf("in client_recvinformation()\n");
+			char buffer[1024];
+			char username[100];
+			char peername[100];
+			char message[1024];
 
-	bzero(buffer,1024);
-	bzero(username,100);
-	bzero(peername,100);
-	bzero(message,1024);
+			bzero(buffer,1024);
+			bzero(username,100);
+			bzero(peername,100);
+			bzero(message,1024);
 	
-	int c = readn(fd,buffer,4);
-	if(c==-1){
-		perror("readn");
-		exit(1);
-	}
-	
-	int number = getnumber(buffer);
-	
-	c = readn(fd,buffer+4,number);
-	if(c==-1){
-		perror("readn");
-		exit(1);
-	}
-
-	getusername(buffer,username);
-	getpeername(buffer,peername);
-	getinformation(buffer,message);
-	
-	printf("from:%s\n",username);
-	printf("to:%s \n",peername);
-	printf("%s\n",message);
-
+			int c = read(fd,buffer,4);
+			printf("\nhave read number %d\n",c);
+			if(c==-1){
+				perror("readn");
+				exit(1);
+			}
+			
+			int number = getnumber(buffer);
+			printf("in_recvinformation the number is %d\n",number);	
+			c = read(fd,buffer+4,number);
+			if(c==-1){
+				perror("readn");
+				exit(1);
+			}
+			for(int k = 0 ; k < number+4 ; k++){
+				printf("%c",buffer[k]);
+			}
+			printf("finis readn c is %d \n",c);
+			getusername(buffer,username);
+			getpeername(buffer,peername);
+	 		getinformation(buffer,message);
+  			printf("***");
+  			write(0,"from: ",6);
+  			write(0,username,strlen(username));
+  			write(0,"message",7);
+  			write(0,message,strlen(message));
+		}
 }
 bool client_login(char* username , char* password ,int fd){
 		char message[100];
@@ -100,36 +106,37 @@ bool menu(int fd){
 	printf("welcom\n");
 	
 	printf("please input your user name: \n");
-	scanf("%s",username);
+	read(0,username,100);
 
 	printf("please input your password: \n");
-	scanf("%s",password);
+	read(0,password,100);
 
 	if(client_login(username,password,fd))return true;
 	return false;
 }
 
 int client_send(int fd){
-	char username[100];
-	char peername[100];
-	char message[1024];
-	bzero(message,1024);
-	bzero(username,100);
-	bzero(peername,100);
-	fflush(stdin);
-	printf("please input the username\n");
-	scanf("%s",username);
-	printf("please input the peername\n");
-	scanf("%s",peername);
-	printf("please input the message\n");
-	gets(message);
-	gets(message);
-	printf("message is :%s\n",message);
-	client_sendinformation(username,peername,message,fd);
-	char a;
-	scanf("%c",&a);
-	if(a=='q')return 0;
-	return 1;
+		while(1){	
+			char username[100];
+			char peername[100];
+			char message[1024];
+			bzero(message,1024);
+			bzero(username,100);
+			bzero(peername,100);
+			printf("please input the username\n");
+			read(0,username,100);
+			printf("please input the peername\n");
+			read(0,peername,100);
+			printf("please input the message\n");
+			read(0,message,100);
+			printf("message is :%s\n",message);
+			client_sendinformation(username,peername,message,fd);
+			printf("finish send information\n");
+			char a;
+			scanf("%c",&a);
+			if(a=='q')break;
+		}
+		return 0 ;
 }
 
 void client_start(int fd){
@@ -140,21 +147,24 @@ void client_start(int fd){
 			perror("pid");
 			exit(2);
 		}
-		if(pid>0){
-			while(1){
-				client_recvinformation(fd);	
-			}
+
+		if(pid==0){ 							//child
+			client_recvinformation(fd);	
 		}
-		else{
+
+		else{ 									//parent
 			while(1){
 				int opt = client_send(fd);	
-				if(opt==1){
+				printf("jump out client_send\n");
+				if(opt==0){
 					kill(pid,SIGKILL);
 					break;
 				}
 			}
 			wait(NULL);
+			exit(0);
 		}
+		
 	}
 	return; 
 }
