@@ -5,9 +5,9 @@
 #include "mystring.h"
 extern usr_DB* db;
 extern pthread_mutex_t mutex;
-void transfer(int);
+void transfer(int,char* user);
 void* deal(void*);
-bool testin(int connect);
+bool testin(int connect,char* user);
 int conne_array[1024];
 void start(int listenfd){
 	int kk = 0 ;
@@ -35,32 +35,37 @@ void start(int listenfd){
 
 void* deal(void* conn){
 	int connect = *((int*)conn);
-	if(!testin(connect)){	
+	char user[100];
+	bzero(user,100);
+	if(!testin(connect,user)){	
 		int count = writen(connect,"n",1);
 		if(count==0){
 			printf("pid:%d offline",getpid());
+			close(connect);
+			pthread_exit(NULL);
 		}
 		else{
-			printf("writen error!\n");			
+			printf("writen error!\n");
+			close(connect);
+			pthread_exit(NULL);			
 		}
 		close(connect);
 		return NULL;	
 	}
 	writen(connect,"y",1);
-	transfer(connect);
+	transfer(connect,user);
 	return NULL;
 }
 
 
 
-bool testin(int connect){
+bool testin(int connect, char* user){
 	char buffer[1024];
 	bzero(buffer,1024);
 	int count = readn(connect,buffer,4);
 	if(count==0)return false;
 	
 	int number = getnumber(buffer);
-	char user[100];
 	char password[100];
 	bzero(user,100);
 	bzero(password,100);
@@ -78,6 +83,7 @@ bool testin(int connect){
 	if(db->check(user,password)){
 		printf("user and password are correct!\n");
 		db->setfd(user,fd);
+		db->login(user);
 		pthread_mutex_unlock(&mutex);
 		printf("finish the testin\n");
 		return true;
@@ -86,7 +92,7 @@ bool testin(int connect){
 	return false;
 }
 
-void transfer(int connect){
+void transfer(int connect,char* user){
 	char buffer[1024];
 	char to[100];
 	char from[100];
@@ -103,11 +109,16 @@ void transfer(int connect){
 		
 			if(count == 0 ){
 				printf("%d offline",connect);
+				pthread_mutex_lock(&mutex);	
+				db->offline(user);
+				pthread_mutex_unlock(&mutex);
+				close(connect);	
 				pthread_exit(NULL);
 			}
 			
 			else if(count<0){
 				perror("readn");
+				close(connect);
 				pthread_exit(NULL);				
 			}
 			
@@ -117,6 +128,10 @@ void transfer(int connect){
 			
 			if(count == 0 ){
 				printf("%d offline",connect);
+				pthread_mutex_lock(&mutex);	
+				db->offline(user);
+				pthread_mutex_unlock(&mutex);	
+				close(connect);
 				pthread_exit(NULL);
 			}
 			
@@ -131,13 +146,29 @@ void transfer(int connect){
 			getinformation(buffer,message);
 			printf("\nReaquest:\nfrom:%s\nto:%s\nmessage:%s\n",from,to,message);
 			
-			pthread_mutex_lock(&mutex);	
+			pthread_mutex_lock(&mutex);
+			if(!db->isonline(to)){	
+				printf("destination is offline\n");
+				char message[5]="0000";
+				int c = writen(connect,message,4);
+				if(c==0){
+					pthread_mutex_unlock(&mutex);
+					close(connect);
+					pthread_exit(NULL);
+				}
+				else if(c<0){
+					perror("writen in 149 in server");
+					exit(1);
+				}
+				continue;
+			}	
 			int fd =  db->getfd(to);
 			pthread_mutex_unlock(&mutex);	
 			
 			int c = writen(fd,buffer,number+4);
 			if(c==0){
 				printf("offline\n");
+				db->offline(user);
 				pthread_exit(NULL);
 			}
 			if(c<0){
@@ -145,5 +176,6 @@ void transfer(int connect){
 				pthread_exit(NULL);
 			}
 			printf("\n in transfer , finish writen wrintein is %d\n",c);
+
 	}
 }	

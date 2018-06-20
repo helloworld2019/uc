@@ -7,6 +7,8 @@ void handle_child(int a){
 	while((n=waitpid(-1,NULL,0))>0){
 		printf("reap child %d\n",n);
 	}
+	printf("parent and the child close\n");
+	exit(0);
 }
 
 int main(int argc , char** argv){

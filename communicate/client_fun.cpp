@@ -4,7 +4,6 @@
 #include "database.h"
 #include "io.h"
 
-
 void client_sendinformation(char* from , char* to , char* information,int fd){
 	char message[1024];
 	bzero(message,1024);
@@ -14,7 +13,7 @@ void client_sendinformation(char* from , char* to , char* information,int fd){
 	if(n==0)printf("server close\n");
 }
 
-void client_recvinformation(int fd){
+void client_recvinformation(int fd,int pid){
 		while(1){	
 			char buffer[1024];
 			char username[100];
@@ -37,6 +36,10 @@ void client_recvinformation(int fd){
 			}
 			
 			int number = getnumber(buffer);
+			if(number==0){
+				printf("\npeer is offline\n");
+				exit(0);
+			}	
 			c = readn(fd,buffer+4,number);
 			if(c==-1){
 				perror("readn");
@@ -49,7 +52,7 @@ void client_recvinformation(int fd){
 			getusername(buffer,username);
 			getpeername(buffer,peername);
 	 		getinformation(buffer,message);
-  			printf("user: %s\n",peername);
+  			printf("\n%s:",peername);
   			printf("%s\n",message);
 		}
 }
@@ -94,8 +97,8 @@ bool menu(char* username , int fd){
 }
 
 int client_send(char* from , int fd){
-		char peername[100];
 		char message[1024];
+		char peername[100];
 		bzero(peername,100);
 		printf("please input the peername\n");
 		scanf("%s",peername);
@@ -106,6 +109,7 @@ int client_send(char* from , int fd){
 			gets(message);
 			client_sendinformation(from,peername,message,fd);
 		}
+		
 		return 0 ;
 }
 
@@ -121,14 +125,14 @@ void client_start(int fd){
 		}
 
 		if(pid==0){ 							//child
-			client_recvinformation(fd);	
+			client_recvinformation(fd,pid);	
 		}
 
 		else{ 									//parent
 			client_send(username , fd);	
-			wait(NULL);
-			exit(0);
 		}
+		wait(NULL);
+		exit(0);
 		
 	}
 	return; 

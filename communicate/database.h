@@ -21,5 +21,5 @@ class usr_DB{
 			int getfd(char* username);
 			void setfd(char* username, char* fd);
 			unsigned int get_online_client();
-
+			bool isonline(char* username);
 };

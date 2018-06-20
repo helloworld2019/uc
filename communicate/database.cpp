@@ -225,4 +225,34 @@ int usr_DB::getfd(char* username){
 	return number;
 }
 
+bool usr_DB::isonline(char* username){
+	char query[100]="select status from usr where user = '";
+	join(query,username);
+	join(query,"'");
 
+
+	MYSQL_RES *res;
+	MYSQL_ROW row;	
+	
+	if(mysql_query(conn,query)){
+		perror("getstatus query error");
+		exit(2);
+	}
+
+	res = mysql_use_result(conn);
+	char status[10];
+	bzero(status,10);
+	if((row=mysql_fetch_row(res))!=NULL){
+		int ki = 0;
+		while(row[0][ki]!='\0'){
+			status[ki] = row[0][ki];
+			ki++;
+		}
+		status[ki]='\0';
+	}
+
+	int number = ctoi(status);
+	mysql_free_result(res);
+	printf("status is %d",number);
+	return number;
+}
