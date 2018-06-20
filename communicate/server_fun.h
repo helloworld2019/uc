@@ -1,4 +1,5 @@
 void start(int);
 bool testin(int);
-void transfer(void*);
+void transfer(int);
+void* deal(void*);
 

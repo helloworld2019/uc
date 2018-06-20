@@ -36,12 +36,9 @@ bool usr_DB::check(char* u , char* pwd){
 	res = mysql_use_result(conn);
 
 	while((row=mysql_fetch_row(res))!=NULL){
-		printf("username:%s\n",row[0]);
-		printf("password:%s\n",row[1]);
 		if(!strcmp(row[0],u)){
 			if(!strcmp(row[1],pwd)){
 				mysql_free_result(res);
-				printf("true\n");
 				return true;
 			}
 		}
@@ -208,7 +205,7 @@ int usr_DB::getfd(char* username){
 	MYSQL_ROW row;	
 	
 	if(mysql_query(conn,query)){
-		perror("query error");
+		perror("getfd query error");
 		exit(2);
 	}
 
@@ -223,12 +220,9 @@ int usr_DB::getfd(char* username){
 		fd[ki]='\0';
 	}
 
-	printf("get_fd jj %s\n",fd);
 	int number = ctoi(fd);
-	printf("number is %d\n",number);
-	return number;
 	mysql_free_result(res);
-
+	return number;
 }
 
 

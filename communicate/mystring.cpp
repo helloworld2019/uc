@@ -42,7 +42,7 @@ void getinformation(char* buffer, char* message){
 		buffer++;
 	}
 	buffer++;
-	while(buffer++){
+	while(*buffer){
 		buffer++;
 	}
 	buffer++;

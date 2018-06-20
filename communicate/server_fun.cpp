@@ -5,9 +5,12 @@
 #include "mystring.h"
 extern usr_DB* db;
 extern pthread_mutex_t mutex;
-void* transfer(void* );
+void transfer(int);
+void* deal(void*);
 bool testin(int connect);
+int conne_array[1024];
 void start(int listenfd){
+	int kk = 0 ;
 	struct sockaddr_in peeraddr;
 	socklen_t peerlen = sizeof(peeraddr);
 	while(1){
@@ -20,52 +23,43 @@ void start(int listenfd){
 				perror("connect");
 			}
 		}
-		while(!testin(connect)){
-			int count = writen(connect,"wrong user or password",22);
-			if(count>0)break;
-			if(count<0){
-				if(errno==EINTR){
-					continue;
-				}
-				perror("writen");
-				exit(1);
-			}
-			if(count==0){
-				printf("pid:%d offline",getpid());
-				exit(0);
-			}
 	
-		}
-		printf("hello?\n");	
-		writen(connect,"successful",10);
-		printf("hi\n");
 		pthread_t tid;
-		int t = connect;
-		pthread_create(&tid,NULL,transfer,(void*)&t);
+		conne_array[kk] = connect;
+		int err = pthread_create(&tid,NULL,deal,(void*)(&conne_array[kk]));
+		printf("err is %d",err);
+		kk++;
 	}
 }
 
-bool testin(int connect){
-	char buffer[1024];
-	while(1){
-		bzero(buffer,1024);
-		int count = readn(connect,buffer,4);
-		if(count>0)break;
-		if(count<0){
-			if(errno==EINTR){
-				continue;
-			}
-			else{
-				perror("readn");
-				exit(1);
-			}
+
+void* deal(void* conn){
+	int connect = *((int*)conn);
+	if(!testin(connect)){	
+		int count = writen(connect,"n",1);
+		if(count==0){
+			printf("pid:%d offline",getpid());
 		}
 		else{
-			break;
+			printf("writen error!\n");			
 		}
+		close(connect);
+		return NULL;	
 	}
+	writen(connect,"y",1);
+	transfer(connect);
+	return NULL;
+}
+
+
+
+bool testin(int connect){
+	char buffer[1024];
+	bzero(buffer,1024);
+	int count = readn(connect,buffer,4);
+	if(count==0)return false;
+	
 	int number = getnumber(buffer);
-	printf("the number is %d \n",number);
 	char user[100];
 	char password[100];
 	bzero(user,100);
@@ -76,8 +70,6 @@ bool testin(int connect){
 	getusername(buffer,user);
 	getpassword(buffer,password);
 
-	printf("username %s\n",user);
-	printf("password %s\n",password);
 
 	char fd[100];
 	bzero(fd,100);
@@ -94,67 +86,64 @@ bool testin(int connect){
 	return false;
 }
 
-void* transfer(void* con){
+void transfer(int connect){
 	char buffer[1024];
 	char to[100];
-	printf("connect is %d",connect);
-	int connect = *((int*)con);
+	char from[100];
+	char message[100];
+	
+	printf("\n in transfer and , connect is %d",connect);
 	while(1){
 			bzero(to,100);
+			bzero(from,100);
 			bzero(buffer,1024);
-
-			while(1){		
-					int count = readn(connect,buffer,4);
-					if(count>0)break;
-					if(count == 0 ){
-						printf("%d offline",connect);
-						exit(0);
-					}
-					if(count<0){
-						if(errno==EINTR){
-							continue;
-						}
-						else{
-							perror("readn");
-							exit(1);
-						}
-					}		
+			bzero(message,100);
+			
+			int count = readn(connect,buffer,4);
+		
+			if(count == 0 ){
+				printf("%d offline",connect);
+				pthread_exit(NULL);
+			}
+			
+			else if(count<0){
+				perror("readn");
+				pthread_exit(NULL);				
 			}
 			
 			int number = getnumber(buffer);
-			printf("in server recv number is %d\n",number);
-			while(1){		
-					int count = readn(connect,buffer+4,number);
-					if(count>0)break;
-					if(count == 0 ){
-						printf("%d offline",connect);
-						exit(0);
-					}
-					if(count<0){
-						if(errno==EINTR){
-							continue;
-						}
-						else{
-							perror("readn");
-							exit(1);
-						}
-					}
-					
-			}
-			for(int k = 0 ; k < number+4 ;k++){
-				printf("%c",buffer[k]);
-			}
-			getpeername(buffer,to);
-			printf("peername is %s",to);
+		
+			count = readn(connect,buffer+4,number);
 			
-			printf("buffer is %s\n",buffer);		
+			if(count == 0 ){
+				printf("%d offline",connect);
+				pthread_exit(NULL);
+			}
+			
+			else if(count<0){
+				perror("readn");
+				pthread_exit(NULL);
+			}
+					
+			
+			getusername(buffer,from);
+			getpeername(buffer,to);
+			getinformation(buffer,message);
+			printf("\nReaquest:\nfrom:%s\nto:%s\nmessage:%s\n",from,to,message);
 			
 			pthread_mutex_lock(&mutex);	
 			int fd =  db->getfd(to);
 			pthread_mutex_unlock(&mutex);	
 			
-			printf("get fd , and fd is %d\n",fd);
 			int c = writen(fd,buffer,number+4);
-			printf("in transfer , finish writen wrintein is %d\n",c);
-	}		
-}
+			if(c==0){
+				printf("offline\n");
+				pthread_exit(NULL);
+			}
+			if(c<0){
+				printf("write error\n");
+				pthread_exit(NULL);
+			}
+			printf("\n in transfer , finish writen wrintein is %d\n",c);
+	}
+}	
